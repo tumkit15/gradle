@@ -274,7 +274,7 @@ public class DefaultConfiguration extends AbstractFileCollection implements Conf
         this.ownArtifacts = new DefaultDomainObjectSet<PublishArtifact>(PublishArtifact.class, callbackDecorator);
         this.ownArtifacts.beforeCollectionChanges(validateMutationType(this, MutationType.ARTIFACTS));
 
-        this.artifacts = new DefaultPublishArtifactSet(Describables.of(displayName, "artifacts"), ownArtifacts, fileCollectionFactory);
+        this.artifacts = instantiator.newInstance(DefaultPublishArtifactSet.class, Describables.of(displayName, "artifacts"), ownArtifacts, fileCollectionFactory);
 
         this.outgoing = instantiator.newInstance(DefaultConfigurationPublications.class, displayName, artifacts, new AllArtifactsProvider(), configurationAttributes, instantiator, artifactNotationParser, capabilityNotationParser, fileCollectionFactory, attributesFactory);
         this.rootComponentMetadataBuilder = rootComponentMetadataBuilder;
@@ -729,7 +729,7 @@ public class DefaultConfiguration extends AbstractFileCollection implements Conf
 
         if (!canBeMutated && extendsFrom.isEmpty()) {
             // No further mutation is allowed and there's no parent: the artifact set corresponds to this configuration own artifacts
-            this.allArtifacts = new DefaultPublishArtifactSet(displayName, ownArtifacts, fileCollectionFactory);
+            this.allArtifacts = instantiator.newInstance(DefaultPublishArtifactSet.class, displayName, ownArtifacts, fileCollectionFactory);
             return;
         }
 
@@ -748,9 +748,9 @@ public class DefaultConfiguration extends AbstractFileCollection implements Conf
             }
         }
         if (inheritedArtifacts != null) {
-            this.allArtifacts = new DefaultPublishArtifactSet(displayName, inheritedArtifacts, fileCollectionFactory);
+            this.allArtifacts = instantiator.newInstance(DefaultPublishArtifactSet.class, displayName, inheritedArtifacts, fileCollectionFactory);
         } else {
-            this.allArtifacts = new DefaultPublishArtifactSet(displayName, ownArtifacts, fileCollectionFactory);
+            this.allArtifacts = instantiator.newInstance(DefaultPublishArtifactSet.class, displayName, ownArtifacts, fileCollectionFactory);
         }
     }
 
