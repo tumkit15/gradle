@@ -20,6 +20,7 @@ import groovy.lang.Closure;
 import org.gradle.api.Action;
 import org.gradle.api.DomainObjectCollection;
 import org.gradle.api.DomainObjectProvider;
+import org.gradle.api.artifacts.ConfigurablePublishArtifact;
 import org.gradle.api.internal.collections.CollectionEventRegister;
 import org.gradle.api.internal.collections.CollectionFilter;
 import org.gradle.api.internal.collections.DefaultCollectionEventRegister;
@@ -29,6 +30,7 @@ import org.gradle.api.internal.provider.AbstractReadOnlyProvider;
 import org.gradle.api.internal.provider.CollectionProviderInternal;
 import org.gradle.api.internal.provider.ProviderInternal;
 import org.gradle.api.internal.provider.Providers;
+import org.gradle.api.model.ObjectFactory;
 import org.gradle.api.provider.Provider;
 import org.gradle.api.specs.Spec;
 import org.gradle.api.specs.Specs;
@@ -273,8 +275,10 @@ public class DefaultDomainObjectCollection<T> extends AbstractCollection<T> impl
     public void addLater(Provider<? extends T> provider) {
         assertMutable("addLater(Provider)");
         assertMutableCollectionContents();
-        ProviderInternal<? extends T> providerInternal = Providers.internal(provider);
+
+        DomainObjectCreatingProvider<T> providerInternal = objectFactory.newInstance(DomainObjectCreatingProvider.class, this, getType(), provider);
         store.addPending(providerInternal);
+
         if (eventRegister.isSubscribed(providerInternal.getType())) {
             doAddRealized(provider.get(), eventRegister.getAddActions());
         }
@@ -600,8 +604,8 @@ public class DefaultDomainObjectCollection<T> extends AbstractCollection<T> impl
     public class DomainObjectCreatingProvider<I extends T> extends AbstractDomainObjectCreatingProvider<I> {
         private final Provider<I> domainObjectProvider;
 
-        public DomainObjectCreatingProvider(Class<I> type, @Nullable Action<? super I> configureAction, Provider<I> domainObjectProvider) {
-            super(type, configureAction);
+        public DomainObjectCreatingProvider(Class<I> type, Provider<I> domainObjectProvider) {
+            super(type, null);
             this.domainObjectProvider = domainObjectProvider;
         }
 

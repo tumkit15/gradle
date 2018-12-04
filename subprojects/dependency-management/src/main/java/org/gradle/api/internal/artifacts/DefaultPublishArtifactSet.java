@@ -57,10 +57,6 @@ public class DefaultPublishArtifactSet extends DelegatingDomainObjectSet<Publish
     private final ObjectFactory objectFactory;
     private final TaskResolver taskResolver;
 
-    public DefaultPublishArtifactSet(String displayName, DomainObjectSet<PublishArtifact> backingSet, FileCollectionFactory fileCollectionFactory, ObjectFactory objectFactory, ProviderFactory providerFactory, TaskResolver taskResolver) {
-        this(Describables.of(displayName), backingSet, fileCollectionFactory, objectFactory, taskResolver);
-    }
-
     @Inject
     public DefaultPublishArtifactSet(Describable displayName, DomainObjectSet<PublishArtifact> backingSet, FileCollectionFactory fileCollectionFactory, ObjectFactory objectFactory, TaskResolver taskResolver) {
         super(backingSet);
@@ -78,9 +74,7 @@ public class DefaultPublishArtifactSet extends DelegatingDomainObjectSet<Publish
     @Override
     public DomainObjectProvider<ConfigurablePublishArtifact> register(Provider<? extends FileSystemLocation> artifactFile, Action<ConfigurablePublishArtifact> configuration) {
         // TODO: Configure the configurable publish artifact based on FileSystemLocation initially?
-        Provider<ConfigurablePublishArtifact> configurablePublishArtifactProvider = artifactFile.map( file -> new DefaultConfigurablePublishArtifact(objectFactory, taskResolver, artifactFile));
-        DomainObjectProvider<ConfigurablePublishArtifact> provider = objectFactory.newInstance(DefaultDomainObjectCollection.DomainObjectCreatingProvider.class, getBackingSet(), ConfigurablePublishArtifact.class, configuration, configurablePublishArtifactProvider);
-        addLater(provider);
+        addLater(artifactFile.map( file -> new DefaultConfigurablePublishArtifact(objectFactory, taskResolver, artifactFile)));
         return provider;
     }
 

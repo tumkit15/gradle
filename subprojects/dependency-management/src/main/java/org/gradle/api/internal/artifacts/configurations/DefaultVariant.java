@@ -26,6 +26,7 @@ import org.gradle.api.attributes.AttributeContainer;
 import org.gradle.api.internal.DefaultDomainObjectSet;
 import org.gradle.api.internal.artifacts.ConfigurationVariantInternal;
 import org.gradle.api.internal.artifacts.DefaultPublishArtifactSet;
+import org.gradle.api.internal.artifacts.PublishArtifactSetFactory;
 import org.gradle.api.internal.attributes.AttributeContainerInternal;
 import org.gradle.api.internal.attributes.ImmutableAttributeContainerWithErrorMessage;
 import org.gradle.api.internal.attributes.ImmutableAttributesFactory;
@@ -48,14 +49,13 @@ public class DefaultVariant implements ConfigurationVariantInternal {
     public DefaultVariant(Describable parentDisplayName, String name,
                           AttributeContainerInternal parentAttributes,
                           NotationParser<Object, ConfigurablePublishArtifact> artifactNotationParser,
-                          FileCollectionFactory fileCollectionFactory,
                           ImmutableAttributesFactory cache,
-                          ObjectFactory objectFactory) {
+                          PublishArtifactSetFactory publishArtifactSetFactory) {
         this.parentDisplayName = parentDisplayName;
         this.name = name;
         attributes = cache.mutable(parentAttributes);
         this.artifactNotationParser = artifactNotationParser;
-        this.artifacts = objectFactory.newInstance(DefaultPublishArtifactSet.class, getAsDescribable(), new DefaultDomainObjectSet<PublishArtifact>(PublishArtifact.class), fileCollectionFactory);
+        this.artifacts = publishArtifactSetFactory.create(getAsDescribable(), new DefaultDomainObjectSet<PublishArtifact>(PublishArtifact.class));
     }
 
     @Override
