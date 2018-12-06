@@ -11,8 +11,12 @@ import accessors.eclipse
 import accessors.groovy
 import accessors.idea
 import accessors.java
+import org.gradle.api.GradleException
+import org.gradle.api.JavaVersion
+import org.gradle.gradlebuild.distributed.DefaultPipeline
 
 import org.gradle.gradlebuild.java.AvailableJavaInstallations
+import org.gradle.internal.os.OperatingSystem
 import org.gradle.plugins.ide.eclipse.EclipsePlugin
 import org.gradle.plugins.ide.idea.IdeaPlugin
 
@@ -87,7 +91,7 @@ fun Project.createTasks(sourceSet: SourceSet, testType: TestType) {
 
 
 internal
-fun Project.createTestTask(name: String, executer: String, sourceSet: SourceSet, testType: TestType, extraConfig: Action<IntegrationTest>): TaskProvider<IntegrationTest> =
+fun Project.createTestTask(name: String, executer: String, sourceSet: SourceSet, testType: TestType, extraConfig: Action<DistributionTest>): TaskProvider<IntegrationTest> =
     tasks.register(name, IntegrationTest::class) {
         description = "Runs ${testType.prefix} with $executer executer"
         systemProperties["org.gradle.integtest.executer"] = executer
@@ -96,11 +100,39 @@ fun Project.createTestTask(name: String, executer: String, sourceSet: SourceSet,
         classpath = sourceSet.runtimeClasspath
         libsRepository.required = testType.libRepoRequired
         extraConfig.execute(this)
+    }.also {
+        DefaultPipeline.pipeline.allStages().map { it.buildInvocation }.flatten().map { it.buildEnvironment }.toSet().forEach { environment ->
+            tasks.register(environment.asEnvironmentSpecificName(name), EnvSpecificIntegrationTest::class) {
+                description = "Runs ${testType.prefix} with $executer executer"
+                systemProperties["org.gradle.integtest.executer"] = executer
+                addDebugProperties()
+                testClassesDirs = sourceSet.output.classesDirs
+                classpath = sourceSet.runtimeClasspath
+                libsRepository.required = testType.libRepoRequired
+                extraConfig.execute(this)
+                operatingSystem = environment.os
+                val vmParts = environment.vm.split(" ")
+                javaVersionOverride = JavaVersion.toVersion(vmParts[vmParts.size - 1])
+                inputs.property("javaInstallation", environment.vm)
+            }.configure {
+                doFirst {
+                    val currentVM = rootProject.availableJavaInstallations.javaInstallationForTest.vendorAndMajorVersion
+                    val currentOS = "${OperatingSystem.current().name} ${System.getProperty("os.arch")}"
+                    if (environment.os != currentOS || environment.vm != currentVM) {
+                        throw GradleException("This task needs to run on '${environment.os} ${environment.vm}' results need to be taken from cache (currently running on '$currentOS $currentVM') - ${inputs.properties}")
+                    }
+                }
+            }
+        }
     }
 
 
+val Project.availableJavaInstallations
+    get() = extensions.getByName<AvailableJavaInstallations>("availableJavaInstallations")
+
+
 private
-fun IntegrationTest.addDebugProperties() {
+fun DistributionTest.addDebugProperties() {
     // TODO Move magic property out
     if (project.hasProperty("org.gradle.integtest.debug")) {
         systemProperties["org.gradle.integtest.debug"] = "true"
